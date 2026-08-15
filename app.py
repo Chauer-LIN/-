@@ -1,7 +1,7 @@
 
 import streamlit as st
 import pandas as pd
-import numpy_financial as npf
+
 
 st.set_page_config(page_title="房產淨利試算", layout="wide")
 
