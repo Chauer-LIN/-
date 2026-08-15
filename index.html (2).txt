@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>個人專屬：房產賣出淨利試算器</title>
+    <style>
+        :root {
+            --primary-color: #4CAF50;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --border-color: #ddd;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+        @media (min-width: 768px) {
+            .container { grid-template-columns: 1fr 2fr; }
+        }
+        .card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1, h2, h3 { color: #2c3e50; }
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        input[type="number"], select {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin-top: 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background 0.3s;
+        }
+        button:hover { background-color: #45a049; }
+        .remove-btn { background-color: #f44336; padding: 5px 10px; font-size: 0.8em; margin-top: 5px;}
+        .remove-btn:hover { background-color: #da190b; }
+        
+        .rate-row {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+            margin-bottom: 10px;
+            background: #f9f9f9;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .rate-row > div { flex: 1; }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 0.9em;
+        }
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            text-align: right;
+        }
+        th { background-color: #f2f2f2; text-align: center;}
+        
+        .result-highlight {
+            font-size: 1.5em;
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px dashed #ccc;
+            padding: 5px 0;
+        }
+        .table-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+        }
+        thead th {
+            position: sticky;
+            top: 0;
+            background: #eee;
+        }
+    </style>
+</head>
+<body>
+
+<h1>🏡 個人專屬：房產賣出淨利試算器</h1>
+
+<div class="container">
+    <!-- Sidebar / Settings -->
+    <div class="sidebar">
+        <div class="card">
+            <h2>1. 基本交易設定</h2>
+            <label>預估賣出總價 (元)</label>
+            <input type="number" id="sellPrice" value="8000000" step="100000" onchange="calculate()">
+            
+            <label>原始買入總價 (元)</label>
+            <input type="number" id="buyPrice" value="6000000" step="100000" onchange="calculate()">
+            
+            <label>可扣抵成本 (裝潢/修繕) (元)</label>
+            <input type="number" id="renovationCost" value="500000" step="10000" onchange="calculate()">
+            
+            <hr style="margin: 20px 0; border: 0; border-top: 1px solid #ddd;">
+            
+            <h2>2. 稅費與規費設定</h2>
+            <label>持有期間 (房地合一稅率)</label>
+            <select id="holdingPeriod" onchange="calculate()">
+                <option value="0.45">2年內 (45%)</option>
+                <option value="0.35" selected>2~5年 (35%)</option>
+                <option value="0.20">5~10年 (20%)</option>
+                <option value="0.15">10年以上 (15%)</option>
+            </select>
+            
+            <label>仲介服務費 (%)</label>
+            <input type="number" id="agencyFeePct" value="4.0" step="0.1" onchange="calculate()">
+            
+            <label>塗銷代書費 (元)</label>
+            <input type="number" id="docFee" value="3000" step="500" onchange="calculate()">
+            
+            <label>土地增值稅預估 (元)</label>
+            <input type="number" id="landTax" value="50000" step="5000" onchange="calculate()">
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main">
+        <div class="card">
+            <h2>3. 房貸剩餘成本試算</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <label>原始貸款總額 (元)</label>
+                    <input type="number" id="loanAmount" value="5640000" step="100000" onchange="calculate()">
+                </div>
+                <div>
+                    <label>貸款總期數 (月)</label>
+                    <input type="number" id="totalMonths" value="360" step="12" onchange="calculate()">
+                </div>
+                <div>
+                    <label>寬限期 (月)</label>
+                    <input type="number" id="gracePeriod" value="36" step="12" onchange="calculate()">
+                </div>
+                <div>
+                    <label>目前已繳納總期數 (月)</label>
+                    <input type="number" id="monthsPaid" value="24" step="1" onchange="calculate()">
+                </div>
+            </div>
+
+            <h3 style="margin-top: 20px;">利率變動設定</h3>
+            <p style="font-size: 0.9em; color: #666;">請依時間順序輸入利率變動。例如：第1期開始 2.26%。</p>
+            <div id="rateContainer">
+                <!-- Rate rows will be added here -->
+            </div>
+            <button onclick="addRateRow()">➕ 新增利率變動</button>
+
+            <div style="margin-top: 20px; background: #e8f5e9; padding: 15px; border-radius: 5px;">
+                <strong>👉 賣出時（第 <span id="displayMonthsPaid"></span> 期繳完），剩餘房貸本金約為：</strong>
+                <div class="result-highlight"><span id="remainingBalanceDisplay">0</span> 元</div>
+            </div>
+            
+            <details style="margin-top:15px; cursor: pointer;">
+                <summary style="font-weight: bold; color: #555;">點擊展開查看詳細攤還表 (前 60 期)</summary>
+                <div class="table-container">
+                    <table id="amortizationTable">
+                        <thead>
+                            <tr>
+                                <th>期數</th>
+                                <th>年利率(%)</th>
+                                <th>月付本息</th>
+                                <th>當期利息</th>
+                                <th>當期還本</th>
+                                <th>本金餘額</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </details>
+        </div>
+
+        <div class="card" style="margin-top: 20px;">
+            <h2>🎉 最終淨利結算</h2>
+            
+            <div class="summary-item">
+                <span>預估賣出總價</span>
+                <strong id="sumSellPrice">0</strong>
+            </div>
+            <div class="summary-item" style="color: red;">
+                <span>扣除：剩餘房貸本金</span>
+                <strong id="sumLoanBalance">0</strong>
+            </div>
+            <div class="summary-item" style="color: red;">
+                <span>扣除：仲介服務費</span>
+                <strong id="sumAgencyFee">0</strong>
+            </div>
+            <div class="summary-item" style="color: red;">
+                <span>扣除：履約保證費 (賣價萬分之1.5)</span>
+                <strong id="sumEscrowFee">0</strong>
+            </div>
+            <div class="summary-item" style="color: red;">
+                <span>扣除：塗銷代書費</span>
+                <strong id="sumDocFee">0</strong>
+            </div>
+            <div class="summary-item" style="color: red;">
+                <span>扣除：土地增值稅</span>
+                <strong id="sumLandTax">0</strong>
+            </div>
+            <div class="summary-item" style="color: red;">
+                <span>扣除：房地合一稅 (<span id="sumTaxRate"></span>%)</span>
+                <strong id="sumCapitalGainsTax">0</strong>
+            </div>
+            
+            <div style="margin-top: 20px; text-align: center; background: #fffde7; padding: 20px; border-radius: 10px; border: 2px dashed #fbc02d;">
+                <h3 style="margin: 0; color: #f57f17;">實際到手淨利</h3>
+                <div class="result-highlight" style="font-size: 2.5em; margin-top: 10px;"><span id="finalNetProfit">0</span> 元</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- Data Management & LocalStorage ---
+    let rateData = [{ start: 1, rate: 2.26 }];
+
+    function saveData() {
+        const data = {
+            sellPrice: document.getElementById('sellPrice').value,
+            buyPrice: document.getElementById('buyPrice').value,
+            renovationCost: document.getElementById('renovationCost').value,
+            holdingPeriod: document.getElementById('holdingPeriod').value,
+            agencyFeePct: document.getElementById('agencyFeePct').value,
+            docFee: document.getElementById('docFee').value,
+            landTax: document.getElementById('landTax').value,
+            loanAmount: document.getElementById('loanAmount').value,
+            totalMonths: document.getElementById('totalMonths').value,
+            gracePeriod: document.getElementById('gracePeriod').value,
+            monthsPaid: document.getElementById('monthsPaid').value,
+            rateData: rateData
+        };
+        localStorage.setItem('houseProfitCalcData', JSON.stringify(data));
+    }
+
+    function loadData() {
+        const saved = localStorage.getItem('houseProfitCalcData');
+        if (saved) {
+            const data = JSON.parse(saved);
+            document.getElementById('sellPrice').value = data.sellPrice || 8000000;
+            document.getElementById('buyPrice').value = data.buyPrice || 6000000;
+            document.getElementById('renovationCost').value = data.renovationCost || 500000;
+            document.getElementById('holdingPeriod').value = data.holdingPeriod || 0.35;
+            document.getElementById('agencyFeePct').value = data.agencyFeePct || 4.0;
+            document.getElementById('docFee').value = data.docFee || 3000;
+            document.getElementById('landTax').value = data.landTax || 50000;
+            document.getElementById('loanAmount').value = data.loanAmount || 5640000;
+            document.getElementById('totalMonths').value = data.totalMonths || 360;
+            document.getElementById('gracePeriod').value = data.gracePeriod || 36;
+            document.getElementById('monthsPaid').value = data.monthsPaid || 24;
+            if (data.rateData && data.rateData.length > 0) {
+                rateData = data.rateData;
+            }
+        }
+        renderRateRows();
+        calculate();
+    }
+
+    // --- UI Interactions ---
+    function renderRateRows() {
+        const container = document.getElementById('rateContainer');
+        container.innerHTML = '';
+        rateData.forEach((item, index) => {
+            const row = document.createElement('div');
+            row.className = 'rate-row';
+            row.innerHTML = `
+                <div>
+                    <label>起始期數</label>
+                    <input type="number" value="${item.start}" min="1" onchange="updateRateData(${index}, 'start', this.value)">
+                </div>
+                <div>
+                    <label>年利率 (%)</label>
+                    <input type="number" value="${item.rate}" step="0.01" onchange="updateRateData(${index}, 'rate', this.value)">
+                </div>
+                <div>
+                    ${index > 0 ? `<button class="remove-btn" onclick="removeRateRow(${index})">刪除</button>` : ''}
+                </div>
+            `;
+            container.appendChild(row);
+        });
+    }
+
+    function addRateRow() {
+        const lastStart = rateData[rateData.length - 1].start;
+        rateData.push({ start: parseInt(lastStart) + 12, rate: 2.41 });
+        renderRateRows();
+        calculate();
+    }
+
+    function removeRateRow(index) {
+        rateData.splice(index, 1);
+        renderRateRows();
+        calculate();
+    }
+
+    function updateRateData(index, field, value) {
+        rateData[index][field] = parseFloat(value);
+        // Sort by start month just in case
+        rateData.sort((a, b) => a.start - b.start);
+        calculate();
+    }
+
+    function formatCurrency(num) {
+        return Math.round(num).toLocaleString('zh-TW');
+    }
+
+    // --- Core Calculation Logic ---
+    function calculate() {
+        saveData(); // Auto-save on any change
+
+        // Get Inputs
+        const sellPrice = parseFloat(document.getElementById('sellPrice').value) || 0;
+        const buyPrice = parseFloat(document.getElementById('buyPrice').value) || 0;
+        const renovationCost = parseFloat(document.getElementById('renovationCost').value) || 0;
+        const taxRate = parseFloat(document.getElementById('holdingPeriod').value) || 0;
+        const agencyFeePct = parseFloat(document.getElementById('agencyFeePct').value) / 100 || 0;
+        const docFee = parseFloat(document.getElementById('docFee').value) || 0;
+        const landTax = parseFloat(document.getElementById('landTax').value) || 0;
+        
+        const loanAmount = parseFloat(document.getElementById('loanAmount').value) || 0;
+        const totalMonths = parseInt(document.getElementById('totalMonths').value) || 0;
+        const gracePeriod = parseInt(document.getElementById('gracePeriod').value) || 0;
+        const monthsPaid = parseInt(document.getElementById('monthsPaid').value) || 0;
+
+        // --- 1. Amortization Schedule ---
+        let currentBalance = loanAmount;
+        let schedule = [];
+        
+        // Ensure rateData is sorted
+        const sortedRates = [...rateData].sort((a, b) => a.start - b.start);
+
+        for (let month = 1; month <= totalMonths; month++) {
+            // Find applicable rate
+            let currentRatePct = sortedRates[0].rate;
+            for (const r of sortedRates) {
+                if (month >= r.start) {
+                    currentRatePct = r.rate;
+                }
+            }
+
+            const monthlyRate = (currentRatePct / 100) / 12;
+            const interestPayment = currentBalance * monthlyRate;
+            let principalPayment = 0;
+            let monthlyPayment = interestPayment;
+
+            if (month > gracePeriod) {
+                const remainingPeriods = totalMonths - month + 1;
+                if (monthlyRate > 0) {
+                    // PMT Formula: P * r(1+r)^n / ((1+r)^n - 1)
+                    monthlyPayment = currentBalance * (monthlyRate * Math.pow(1 + monthlyRate, remainingPeriods)) / (Math.pow(1 + monthlyRate, remainingPeriods) - 1);
+                } else {
+                    monthlyPayment = currentBalance / remainingPeriods;
+                }
+                principalPayment = monthlyPayment - interestPayment;
+            }
+
+            currentBalance -= principalPayment;
+            if (currentBalance < 0) currentBalance = 0;
+
+            schedule.push({
+                month: month,
+                rate: currentRatePct,
+                monthlyPayment: monthlyPayment,
+                interestPayment: interestPayment,
+                principalPayment: principalPayment,
+                balance: currentBalance
+            });
+        }
+
+        // Determine remaining balance at 'monthsPaid'
+        let remainingLoanBalance = loanAmount;
+        if (monthsPaid > 0 && monthsPaid <= totalMonths) {
+            remainingLoanBalance = schedule[monthsPaid - 1].balance;
+        } else if (monthsPaid > totalMonths) {
+            remainingLoanBalance = 0;
+        }
+
+        // Render Table (limit to 60 for performance, or max months)
+        const tbody = document.querySelector('#amortizationTable tbody');
+        tbody.innerHTML = '';
+        const displayLimit = Math.min(totalMonths, 60);
+        for(let i = 0; i < displayLimit; i++){
+            const s = schedule[i];
+            tbody.innerHTML += `
+                <tr>
+                    <td style="text-align: center;">${s.month}</td>
+                    <td>${s.rate.toFixed(3)}</td>
+                    <td>${formatCurrency(s.monthlyPayment)}</td>
+                    <td>${formatCurrency(s.interestPayment)}</td>
+                    <td>${formatCurrency(s.principalPayment)}</td>
+                    <td>${formatCurrency(s.balance)}</td>
+                </tr>
+            `;
+        }
+        if(totalMonths > 60) {
+            tbody.innerHTML += `<tr><td colspan="6" style="text-align:center; color:#888;">... 表格僅顯示前 60 期 ...</td></tr>`;
+        }
+
+        // Update Loan Display
+        document.getElementById('displayMonthsPaid').innerText = monthsPaid;
+        document.getElementById('remainingBalanceDisplay').innerText = formatCurrency(remainingLoanBalance);
+
+        // --- 2. Final Costs & Profit Calculation ---
+        const agencyFeeAmount = sellPrice * agencyFeePct;
+        const escrowFee = sellPrice * 0.00015; // 萬分之1.5 (買賣各半)
+        const totalSellingCosts = agencyFeeAmount + escrowFee + docFee;
+
+        // 房地合一稅
+        const taxableIncome = Math.max(0, sellPrice - buyPrice - renovationCost - totalSellingCosts);
+        const capitalGainsTax = taxableIncome * taxRate;
+
+        // 實際到手
+        const netProfit = sellPrice - remainingLoanBalance - totalSellingCosts - landTax - capitalGainsTax;
+
+        // Update Dashboard
+        document.getElementById('sumSellPrice').innerText = formatCurrency(sellPrice);
+        document.getElementById('sumLoanBalance').innerText = "- " + formatCurrency(remainingLoanBalance);
+        document.getElementById('sumAgencyFee').innerText = "- " + formatCurrency(agencyFeeAmount);
+        document.getElementById('sumEscrowFee').innerText = "- " + formatCurrency(escrowFee);
+        document.getElementById('sumDocFee').innerText = "- " + formatCurrency(docFee);
+        document.getElementById('sumLandTax').innerText = "- " + formatCurrency(landTax);
+        document.getElementById('sumTaxRate').innerText = (taxRate * 100).toFixed(0);
+        document.getElementById('sumCapitalGainsTax').innerText = "- " + formatCurrency(capitalGainsTax);
+        
+        document.getElementById('finalNetProfit').innerText = formatCurrency(Math.max(0, netProfit));
+    }
+
+    // Initialize
+    window.onload = loadData;
+</script>
+
+</body>
+</html>
